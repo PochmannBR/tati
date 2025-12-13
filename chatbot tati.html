@@ -239,6 +239,27 @@
             if (e.key === 'Enter') sendMessage();
         }
 
+		// FUNÇÃO DO CONTADOR REGRESSIVO
+        function iniciarContagem(elementId) {
+            let segundos = 30;
+            const elemento = document.getElementById(elementId);
+            
+            const intervalo = setInterval(() => {
+                segundos--;
+                if (elemento) {
+                    elemento.innerText = segundos;
+                }
+
+                if (segundos <= 0) {
+                    clearInterval(intervalo);
+                    if (elemento) {
+                        elemento.innerText = "0 (Pronto!)";
+                        elemento.style.color = "green"; // Fica verde quando libera
+                    }
+                }
+            }, 1000); // Roda a cada 1000ms (1 segundo)
+        }
+		
         async function sendMessage() {
             const input = document.getElementById('user-input');
             const messageText = input.value.trim();
@@ -249,7 +270,7 @@
 
             // Bloqueia envio se as normas ainda não carregaram
             if (!KNOWLEDGE_BASE && PDF_FILES.length > 0) {
-                alert("Ainda estou lendo as normas da EsAO. Tente novamente em alguns segundos.");
+                alert("Ainda estou lendo as normas da EsAO. Aguarde um instante.");
                 return;
             }
 
@@ -271,39 +292,53 @@
                         system_instruction: { parts: [{ text: finalInstruction }] } 
                     })
                 });
-
-                const data = await response.json();
-                // --- TRATAMENTO DE ERROS ---
+				
+				const data = await response.json();
+                
                 let botResponse = "Desculpe, não consegui processar a resposta.";
+                let isError429 = false;
+                let timerId = "";
 
                 if (data.error) {
                     console.error("ERRO API:", data.error);
-                    // Se der erro 429 (Muitos pedidos), avisa o usuário
+                    
+                    // --- AQUI ESTÁ A MÁGICA DO CONTADOR ---
                     if (data.error.code === 429) {
-                        botResponse = "Estou recebendo muitas consultas ao mesmo tempo. Por favor, aguarde 30 segundos e tente novamente.";
+                        isError429 = true;
+                        // Cria um ID único baseado na hora atual para não confundir os relógios
+                        timerId = "timer-" + Date.now();
+                        
+                        botResponse = `⚠️ <b>Sobrecarga Tática!</b><br>
+                                       Muitas solicitações simultâneas.<br>
+                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">30</b> segundos.`;
                     } else {
                         botResponse = `Erro técnico (${data.error.code}): ${data.error.message}`;
                     }
                 } else if (data.candidates && data.candidates[0].content) {
                     botResponse = data.candidates[0].content.parts[0].text;
+                    botResponse = botResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
                 }
 
-                // Formatação simples (Negrito e quebra de linha)
-                botResponse = botResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-                
+                // Adiciona a resposta na tela
                 messagesDiv.innerHTML += `<div class="message bot">${botResponse}</div>`;
 
+                // Se for o erro 429, dispara o contador AGORA, depois que o HTML já foi criado
+                if (isError429) {
+                    iniciarContagem(timerId);
+                }
+
             } catch (error) {
-                console.error("Erro no envio:", error); // Isso ajuda a ver erros no console
-                messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro crítico. Verifique o console (F12).</div>`;
+                console.error("ERRO JS:", error);
+                messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro de conexão. Verifique o console.</div>`;
             }
 
             typingIndicator.style.display = 'none';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+		}
     </script>
 </body>
 
 </html>
+
 
 
