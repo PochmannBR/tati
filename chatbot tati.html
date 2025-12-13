@@ -247,71 +247,46 @@
 
             if (!messageText) return;
 
-            // 1. Adiciona mensagem do usuário
+            // Bloqueia envio se as normas ainda não carregaram
+            if (!KNOWLEDGE_BASE && PDF_FILES.length > 0) {
+                alert("Ainda estou lendo as normas da EsAO. Tente novamente em alguns segundos.");
+                return;
+            }
+
+            // 1. Adiciona mensagem do usuário na tela
             messagesDiv.innerHTML += `<div class="message user">${messageText}</div>`;
             input.value = '';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-            // 2. Mostra "digitando..."
             typingIndicator.style.display = 'block';
 
-            try {
-                // Monta o corpo da requisição
-                const requestBody = {
-                    contents: [{
-                        parts: [{ text: messageText }]
-                    }],
-                    system_instruction: {
-                        parts: [{ text: SYSTEM_INSTRUCTION }]
-                    },
-                    // AJUSTE DE SEGURANÇA: Permite que a IA responda coisas que ela poderia achar "arriscadas" por engano
-                    safety_settings: [
-                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                    ]
-                };
+            // 2. Monta o prompt combinando a Persona (BASE_INSTRUCTION) + O texto dos PDFs (KNOWLEDGE_BASE)
+            const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO DAS NORMAS ESAO:\n${KNOWLEDGE_BASE}`;
 
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`, {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: messageText }] }],
+                        system_instruction: { parts: [{ text: finalInstruction }] } 
+                    })
                 });
 
                 const data = await response.json();
+                let botResponse = "Erro de comunicação.";
                 
-                // --- DEBUG: MOSTRA A RESPOSTA REAL NO CONSOLE (Aperte F12) ---
-                console.log("STATUS DA REQUISIÇÃO:", response.status);
-                console.log("DADOS RECEBIDOS:", data);
-
-                let botResponse = "";
-
-                // Verificação de Erro vinda do Google
-                if (data.error) {
-                    console.error("ERRO DA API:", data.error);
-                    botResponse = `Erro técnico: ${data.error.message}`;
-                } 
-                // Verificação de Sucesso
-                else if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
+                if (data.candidates && data.candidates[0].content) {
                     botResponse = data.candidates[0].content.parts[0].text;
-                } 
-                // Verificação de Bloqueio (Safety)
-                else if (data.candidates && data.candidates[0].finishReason) {
-                    botResponse = `A resposta foi bloqueada pelo filtro de segurança. Motivo: ${data.candidates[0].finishReason}`;
-                } else {
-                    botResponse = "Recebi uma resposta vazia. Verifique o console (F12).";
                 }
 
-                // Formata a resposta
-                botResponse = botResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
-                botResponse = botResponse.replace(/\n/g, '<br>'); 
-
+                // Formatação simples (Negrito e quebra de linha)
+                botResponse = botResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                
                 messagesDiv.innerHTML += `<div class="message bot">${botResponse}</div>`;
 
             } catch (error) {
-                console.error("ERRO NO CÓDIGO (JS):", error);
-                messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro crítico. Veja o console (F12).</div>`;
+                console.error("Erro no envio:", error); // Isso ajuda a ver erros no console
+                messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro crítico. Verifique o console (F12).</div>`;
             }
 
             typingIndicator.style.display = 'none';
@@ -319,4 +294,5 @@
         }
     </script>
 </body>
+
 </html>
