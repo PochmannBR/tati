@@ -273,9 +273,18 @@
                 });
 
                 const data = await response.json();
-                let botResponse = "Erro de comunicação.";
-                
-                if (data.candidates && data.candidates[0].content) {
+                // --- TRATAMENTO DE ERROS ---
+                let botResponse = "Desculpe, não consegui processar a resposta.";
+
+                if (data.error) {
+                    console.error("ERRO API:", data.error);
+                    // Se der erro 429 (Muitos pedidos), avisa o usuário
+                    if (data.error.code === 429) {
+                        botResponse = "Estou recebendo muitas consultas ao mesmo tempo. Por favor, aguarde 30 segundos e tente novamente.";
+                    } else {
+                        botResponse = `Erro técnico (${data.error.code}): ${data.error.message}`;
+                    }
+                } else if (data.candidates && data.candidates[0].content) {
                     botResponse = data.candidates[0].content.parts[0].text;
                 }
 
@@ -296,4 +305,5 @@
 </body>
 
 </html>
+
 
