@@ -162,7 +162,7 @@
 
     <script>
         // CONFIGURAÇÕES
-        const API_KEY = 'AIzaSyB3i2njB7OAgbYeeFF2-9eiMaTa6m0tjLI'; 
+        const API_KEY = 'AIzaSyBZBmwdrw08LvxVvLmRI8x9I7KViKWXKOM'; 
         
 // LISTA DE ARQUIVOS PDF NO SEU GITHUB (Caminho relativo ao HTML)
         const PDF_FILES = [
@@ -177,13 +177,18 @@
 
         // Variável que guardará o texto extraído dos PDFs
         let KNOWLEDGE_BASE = "";
+		let chatHistory = []; // <--- NOVA LISTA PARA GUARDAR A CONVERSA
         
         // Persona padrão
         const BASE_INSTRUCTION = `
             Você é a Capitão Tati, Adjunto 3 da Seção de Pós-Graduação da EsAO.
+			DIRETRIZES DE ESTILO:
+            1. SEJA DIRETA: Não inicie as respostas se apresentando (ex: "Sou a Capitão Tati..."). Vá direto à resposta da dúvida.
+            2. IDENTIDADE: Apenas diga seu nome/cargo se o usuário perguntar explicitamente "Quem é você?" ou "Qual seu nome?".
+            3. TOM DE VOZ: Cordial, militar, objetivo e prestativo.
+            4. FINALIZAÇÃO: Use "Bellator et Sapien!" apenas quando encerrar um assunto ou resolver a dúvida completamente.
             Sua missão é ajudar oficiais alunos com base nas normas abaixo.
-            Seja cordial e termine com "Bellator et Sapien!".
-            Responda apenas com base nas informações acima. Se a dúvida do aluno não estiver nestes textos, oriente-o a procurar a Seção de Pós-Graduação presencialmente, pelo telefone (21) 2450-8520 ou pelo e-mail esao.spg@gmail.com.
+            Responda apenas com base nas sua base de conhecimento. Se a dúvida do aluno não estiver nestes textos, oriente-o a procurar a Seção de Pós-Graduação presencialmente, pelo telefone (21) 2450-8520 ou pelo e-mail esao.spg@gmail.com.
         `;
 
         // --- FUNÇÃO PARA LER OS PDFs ---
@@ -259,7 +264,8 @@
                 }
             }, 1000); // Roda a cada 1000ms (1 segundo)
         }
-		
+
+		//FUNÇÃO CHAT MESSAGE
         async function sendMessage() {
             const input = document.getElementById('user-input');
             const messageText = input.value.trim();
@@ -274,15 +280,24 @@
                 return;
             }
 
-            // 1. Adiciona mensagem do usuário na tela
+            //Adiciona mensagem do usuário na tela
             messagesDiv.innerHTML += `<div class="message user">${messageText}</div>`;
             input.value = '';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             typingIndicator.style.display = 'block';
 
-            // 2. Monta o prompt combinando a Persona (BASE_INSTRUCTION) + O texto dos PDFs (KNOWLEDGE_BASE)
-            const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO DAS NORMAS ESAO:\n${KNOWLEDGE_BASE}`;
+            // --- MONTAGEM DO PACOTE COM HISTÓRICO ---
+            
+            // 1. Prepara a instrução do sistema (Normas)
+            // Note que agora mandamos isso separadamente na estrutura do Gemini
+            const systemInstructionContent = {
+                role: "user", 
+                parts: [{ text: `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${KNOWLEDGE_BASE}` }]
+            };
 
+            // 2. Adiciona a pergunta atual ao histórico local
+            chatHistory.push({ role: "user", parts: [{ text: messageText }] });
+			
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`, {
                     method: 'POST',
@@ -339,6 +354,7 @@
 </body>
 
 </html>
+
 
 
 
