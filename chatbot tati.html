@@ -6,10 +6,7 @@
     <title>Chat SPG - Capitão Tati</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
+    <script src="dados.js"></script>
 
     <style>
         /* Estilo do Botão Flutuante */
@@ -170,20 +167,7 @@
 		        
         const API_KEY = part1 + part2 + part3 + part4 + part5; // O navegador junta as duas partes
         
-// LISTA DE ARQUIVOS PDF NO SEU GITHUB (Caminho relativo ao HTML)
-        const PDF_FILES = [
-            './docs/1. RIPG_2022_Aprovado.pdf',       
-            './docs/2. IPG_2024 4 JAN 24.pdf',       
-            './docs/3. PGPC 2025.pdf',       
-            './docs/4. Calendário EsAO 2025.pdf',       
-            './docs/5. PACPG_2025.pdf',       
-            './docs/6. MATAD 2025.pdf',       
-            './docs/7. Manual MPC.pdf',       
-        ];
-
-        // Variável que guardará o texto extraído dos PDFs
-        let KNOWLEDGE_BASE = "";
-		let chatHistory = []; // <--- NOVA LISTA PARA GUARDAR A CONVERSA
+		let chatHistory = [];
         
         // Persona padrão
         const BASE_INSTRUCTION = `
@@ -196,46 +180,6 @@
             Sua missão é ajudar oficiais alunos com base nas normas abaixo.
             Responda apenas com base nas sua base de conhecimento. Se a dúvida do aluno não estiver nestes textos, oriente-o a procurar a Seção de Pós-Graduação presencialmente, pelo telefone (21) 2450-8520 ou pelo e-mail esao.spg@gmail.com.
         `;
-
-        // --- FUNÇÃO PARA LER OS PDFs ---
-        async function loadPdfTexts() {
-            const statusDiv = document.getElementById('loading-docs');
-            statusDiv.style.display = 'block';
-            let fullText = "";
-
-            try {
-                for (let url of PDF_FILES) {
-                    console.log(`Lendo arquivo: ${url}`);
-                    // Busca o arquivo
-                    const loadingTask = pdfjsLib.getDocument(url);
-                    const pdf = await loadingTask.promise;
-                    
-                    fullText += `\n\n--- INÍCIO DO ARQUIVO: ${url} ---\n`;
-                    
-                    // Lê página por página
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const pageText = textContent.items.map(item => item.str).join(' ');
-                        fullText += pageText + "\n";
-                    }
-                    fullText += `--- FIM DO ARQUIVO: ${url} ---\n`;
-                }
-                
-                KNOWLEDGE_BASE = fullText;
-                statusDiv.innerText = "Normas carregadas com sucesso!";
-                setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
-                console.log("Base de conhecimento atualizada!");
-
-            } catch (error) {
-                console.error("Erro ao ler PDFs:", error);
-                statusDiv.innerText = "Erro ao carregar normas. Verifique o console.";
-                statusDiv.style.color = "red";
-            }
-        }
-
-        // Carrega os PDFs assim que a página abre
-        window.onload = loadPdfTexts;
 
         function toggleChat() {
             const chatWindow = document.getElementById('chat-window');
@@ -254,7 +198,6 @@
         function iniciarContagem(elementId) {
             let segundos = 15;
             const elemento = document.getElementById(elementId);
-            
             const intervalo = setInterval(() => {
                 segundos--;
                 if (elemento) {
@@ -264,7 +207,7 @@
                 if (segundos <= 0) {
                     clearInterval(intervalo);
                     if (elemento) {
-                        elemento.innerText = "0 (Pronto!)";
+                        elemento.innerText = "0 (Pronto! Pode repetir a pergunta, por favor?)";
                         elemento.style.color = "green"; // Fica verde quando libera
                     }
                 }
@@ -309,9 +252,9 @@
 			
             if (!messageText) return;
 
-            // Bloqueia envio se as normas ainda não carregaram
-            if (!KNOWLEDGE_BASE && PDF_FILES.length > 0) {
-                alert("Ainda estou lendo as normas da EsAO. Aguarde um instante.");
+            // Verificação de Segurança: O arquivo dados.js carregou?
+            if (typeof NORMAS_TEXTO === 'undefined') {
+                alert("Erro: O arquivo de normas (dados.js) não foi carregado.");
                 return;
             }
 
@@ -321,13 +264,10 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             typingIndicator.style.display = 'block';
 
-			// --- Grava no Log ---
-			logToGoogleSheets(messageText, botResponse);
-			
 			// --- GESTÃO DE HISTÓRICO E CONTEXTO ---
             
             // A. Define a instrução do sistema (Persona + PDFs)
-            const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${KNOWLEDGE_BASE}`;
+            const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${NORMAS_TEXTO}`;
 
             // B. Adiciona a pergunta atual ao histórico local
             chatHistory.push({ role: "user", parts: [{ text: messageText }] });
@@ -361,7 +301,7 @@
                         
                         botResponse = `⚠️ <b>Sobrecarga Tática!</b><br>
                                        Muitas solicitações simultâneas.<br>
-                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">30</b> segundos.`;
+                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">15</b> segundos.`;
                     } else {
                         botResponse = `Erro técnico (${data.error.code}): ${data.error.message}`;
                     }
@@ -389,6 +329,9 @@
                 messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro de conexão. Verifique o console.</div>`;
             }
 
+			// --- Grava no Log ---
+			logToGoogleSheets(messageText, botResponse);
+			
             typingIndicator.style.display = 'none';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -396,6 +339,7 @@
 </body>
 
 </html>
+
 
 
 
