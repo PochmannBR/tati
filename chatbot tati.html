@@ -9,7 +9,8 @@
 	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <script src="dados.js"></script>
-
+	<script src="persona.js"></script>
+	
     <style>
         /* Estilo do Botão Flutuante */
         #chat-btn {
@@ -159,7 +160,7 @@
         </div>
     </div>
 
-    <script>
+	<script>
         // TÁTICA ANTI-ROBÔ: Quebramos a chave em duas partes
         const part1 = "A"; // O início padrão (que o robô busca)
         const part2 = "IzaSyC"; // Cole aqui o resto da chave (sem o AIzaSy)
@@ -171,10 +172,7 @@
         
 		let chatHistory = [];
 
-		</script> 
-		<script src="persona.js"></script>  // Persona padrão
-        
-        function toggleChat() {
+	    function toggleChat() {
             const chatWindow = document.getElementById('chat-window');
             if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
                 chatWindow.style.display = 'flex';
@@ -262,14 +260,11 @@
             const hoje = new Date().toLocaleDateString('pt-BR');
             const contextoTemporal = `HOJE É DIA: ${hoje}. Use essa data para verificar prazos.`;
 
-            // Adicionamos a data ao comando do sistema
+            // --- GESTÃO DE HISTÓRICO E CONTEXTO ---
+			// Adicionamos a data ao comando do sistema
             const finalInstruction = `${BASE_INSTRUCTION}\n${contextoTemporal}\n\nCONTEXTO E NORMAS DA ESAO:\n${NORMAS_TEXTO}`;
 			
-			// --- GESTÃO DE HISTÓRICO E CONTEXTO ---
-            // A. Define a instrução do sistema (Persona + PDFs)
-            const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${NORMAS_TEXTO}`;
-
-            // B. Adiciona a pergunta atual ao histórico local
+			// B. Adiciona a pergunta atual ao histórico local
             chatHistory.push({ role: "user", parts: [{ text: messageText }] });
             
             try {
@@ -337,17 +332,4 @@
         }
     </script>
 </body>
-
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
