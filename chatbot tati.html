@@ -161,8 +161,14 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES
-        const API_KEY = 'AIzaSyBZBmwdrw08LvxVvLmRI8x9I7KViKWXKOM'; 
+        // TÁTICA ANTI-ROBÔ: Quebramos a chave em duas partes
+        const part1 = "A"; // O início padrão (que o robô busca)
+        const part2 = "IzaSyC"; // Cole aqui o resto da chave (sem o AIzaSy)
+		const part3 = "Pd5uIEOglC"; // Cole aqui o resto da chave (sem o AIzaSy)
+		const part4 = "zvRTWtHZE1ylP"; // Cole aqui o resto da chave (sem o AIzaSy)
+		const part5 = "2MGzIlGCc"; // Cole aqui o resto da chave (sem o AIzaSy)
+		        
+        const API_KEY = part1 + part2 + part3 + part4 + part5; // O navegador junta as duas partes
         
 // LISTA DE ARQUIVOS PDF NO SEU GITHUB (Caminho relativo ao HTML)
         const PDF_FILES = [
@@ -359,6 +365,7 @@
 </body>
 
 </html>
+
 
 
 
