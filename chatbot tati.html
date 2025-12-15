@@ -286,29 +286,27 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             typingIndicator.style.display = 'block';
 
-            // --- MONTAGEM DO PACOTE COM HISTÓRICO ---
+			// --- GESTÃO DE HISTÓRICO E CONTEXTO ---
             
-            // 1. Prepara a instrução do sistema (Normas)
-            // Note que agora mandamos isso separadamente na estrutura do Gemini
-            const systemInstructionContent = {
-                role: "user", 
-                parts: [{ text: `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${KNOWLEDGE_BASE}` }]
-            };
+            // A. Define a instrução do sistema (Persona + PDFs)
+            const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${KNOWLEDGE_BASE}`;
 
-            // 2. Adiciona a pergunta atual ao histórico local
+            // B. Adiciona a pergunta atual ao histórico local
             chatHistory.push({ role: "user", parts: [{ text: messageText }] });
-			
+            
             try {
+                // Tenta usar a versão gemini-flash-latest
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: messageText }] }],
+                        // Envia o histórico completo
+                        contents: chatHistory,
                         system_instruction: { parts: [{ text: finalInstruction }] } 
                     })
                 });
-				
-				const data = await response.json();
+                
+                const data = await response.json();
                 
                 let botResponse = "Desculpe, não consegui processar a resposta.";
                 let isError429 = false;
@@ -317,10 +315,11 @@
                 if (data.error) {
                     console.error("ERRO API:", data.error);
                     
-                    // --- AQUI ESTÁ A MÁGICA DO CONTADOR ---
+                    // Se der erro, remove a última pergunta do histórico para não travar a conversa
+                    chatHistory.pop();
+
                     if (data.error.code === 429) {
                         isError429 = true;
-                        // Cria um ID único baseado na hora atual para não confundir os relógios
                         timerId = "timer-" + Date.now();
                         
                         botResponse = `⚠️ <b>Sobrecarga Tática!</b><br>
@@ -331,29 +330,36 @@
                     }
                 } else if (data.candidates && data.candidates[0].content) {
                     botResponse = data.candidates[0].content.parts[0].text;
+                    
+                    // C. IMPORTANTE: Salva a resposta da IA no histórico
+                    chatHistory.push({ role: "model", parts: [{ text: botResponse }] });
+
+                    // Formatação
                     botResponse = botResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
                 }
 
                 // Adiciona a resposta na tela
                 messagesDiv.innerHTML += `<div class="message bot">${botResponse}</div>`;
 
-                // Se for o erro 429, dispara o contador AGORA, depois que o HTML já foi criado
+                // Dispara o contador se for erro 429
                 if (isError429) {
                     iniciarContagem(timerId);
                 }
 
             } catch (error) {
                 console.error("ERRO JS:", error);
+                chatHistory.pop(); // Remove a pergunta falha
                 messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro de conexão. Verifique o console.</div>`;
             }
 
             typingIndicator.style.display = 'none';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-		}
+        }
     </script>
 </body>
 
 </html>
+
 
 
 
