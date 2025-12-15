@@ -271,6 +271,33 @@
             }, 1000); // Roda a cada 1000ms (1 segundo)
         }
 
+		// SUBSTITUA PELOS SEUS DADOS REAIS
+		const FORM_ID = "1FAIpQLSeYQ-3jESx__-hDBliid8cIOSZ0c6cFET6B6OaOofKdxP7IHQ"; 
+		const ENTRY_PERGUNTA = "entry.742193664"; // Número da entrada da pergunta
+		const ENTRY_RESPOSTA = "entry.243665627"; // Número da entrada da resposta
+
+		async function logToGoogleSheets(pergunta, resposta) {
+   		// Monta a URL de envio (usamos formResponse em vez de viewform)
+    	const url = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+    
+    	// Cria os dados do formulário
+    	const formData = new FormData();
+    	formData.append(ENTRY_PERGUNTA, pergunta);
+    	formData.append(ENTRY_RESPOSTA, resposta);
+
+    	try {
+        	// Envia sem esperar resposta (mode: 'no-cors' é essencial aqui)
+        	await fetch(url, {
+            	method: "POST",
+            	mode: "no-cors",
+            	body: formData
+        	});
+        	console.log("Log enviado para o QG!");
+    	} catch (e) {
+        	console.error("Falha no log:", e);
+    	}
+	}
+		
 		//FUNÇÃO CHAT MESSAGE
         async function sendMessage() {
             const input = document.getElementById('user-input');
@@ -292,6 +319,9 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             typingIndicator.style.display = 'block';
 
+			// --- Grava no Log ---
+			logToGoogleSheets(messageText, botResponse);
+			
 			// --- GESTÃO DE HISTÓRICO E CONTEXTO ---
             
             // A. Define a instrução do sistema (Persona + PDFs)
@@ -365,6 +395,7 @@
 </body>
 
 </html>
+
 
 
 
