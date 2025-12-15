@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat SPG - Capitão Tati</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+	
+	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <script src="dados.js"></script>
 
@@ -168,19 +170,9 @@
         const API_KEY = part1 + part2 + part3 + part4 + part5; // O navegador junta as duas partes
         
 		let chatHistory = [];
-        
-        // Persona padrão
-        const BASE_INSTRUCTION = `
-            Você é a Capitão Tati, Adjunto 3 da Seção de Pós-Graduação da EsAO.
-			DIRETRIZES DE ESTILO:
-            1. SEJA DIRETA: Não inicie as respostas se apresentando (ex: "Sou a Capitão Tati..."). Vá direto à resposta da dúvida.
-            2. IDENTIDADE: Apenas diga seu nome/cargo se o usuário perguntar explicitamente "Quem é você?" ou "Qual seu nome?".
-            3. TOM DE VOZ: Cordial, militar, objetivo e prestativo.
-            4. FINALIZAÇÃO: Use "Bellator et Sapien!" apenas quando encerrar um assunto ou resolver a dúvida completamente.
-            Sua missão é ajudar oficiais alunos com base nas normas abaixo.
-            Responda apenas com base nas sua base de conhecimento. Se a dúvida do aluno não estiver nestes textos, oriente-o a procurar a Seção de Pós-Graduação presencialmente, pelo telefone (21) 2450-8520 ou pelo e-mail esao.spg@gmail.com.
-        `;
 
+		<script src="persona.js"></script>  // Persona padrão
+        
         function toggleChat() {
             const chatWindow = document.getElementById('chat-window');
             if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
@@ -264,8 +256,15 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             typingIndicator.style.display = 'block';
 
+			// --- MELHORIA 2: CONSCIÊNCIA TEMPORAL ---
+            // Pegamos a data de hoje formatada (ex: "15/12/2025")
+            const hoje = new Date().toLocaleDateString('pt-BR');
+            const contextoTemporal = `HOJE É DIA: ${hoje}. Use essa data para verificar prazos.`;
+
+            // Adicionamos a data ao comando do sistema
+            const finalInstruction = `${BASE_INSTRUCTION}\n${contextoTemporal}\n\nCONTEXTO E NORMAS DA ESAO:\n${NORMAS_TEXTO}`;
+			
 			// --- GESTÃO DE HISTÓRICO E CONTEXTO ---
-            
             // A. Define a instrução do sistema (Persona + PDFs)
             const finalInstruction = `${BASE_INSTRUCTION}\n\nCONTEXTO E NORMAS DA ESAO:\n${NORMAS_TEXTO}`;
 
@@ -312,7 +311,7 @@
                     chatHistory.push({ role: "model", parts: [{ text: botResponse }] });
 
                     // Formatação
-                    botResponse = botResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                    botResponse = marked.parse(botResponse);
                 }
 
                 // Adiciona a resposta na tela
@@ -339,6 +338,7 @@
 </body>
 
 </html>
+
 
 
 
