@@ -187,7 +187,7 @@
 
 		// FUNÇÃO DO CONTADOR REGRESSIVO
         function iniciarContagem(elementId) {
-            let segundos = 15;
+            let segundos = 30;
             const elemento = document.getElementById(elementId);
             const intervalo = setInterval(() => {
                 segundos--;
@@ -296,7 +296,7 @@
                         
                         botResponse = `⚠️ <b>Sobrecarga Tática!</b><br>
                                        Muitas solicitações simultâneas.<br>
-                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">15</b> segundos.`;
+                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">30</b> segundos.`;
                     } else {
                         botResponse = `Erro técnico (${data.error.code}): ${data.error.message}`;
                     }
@@ -333,3 +333,4 @@
     </script>
 </body>
 </html>
+
