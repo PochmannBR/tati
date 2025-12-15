@@ -305,6 +305,8 @@
             const messagesDiv = document.getElementById('chat-messages');
             const typingIndicator = document.getElementById('typing-indicator');
 
+			let botResponse = "Desculpe, não consegui processar a resposta.";
+			
             if (!messageText) return;
 
             // Bloqueia envio se as normas ainda não carregaram
@@ -344,7 +346,6 @@
                 
                 const data = await response.json();
                 
-                let botResponse = "Desculpe, não consegui processar a resposta.";
                 let isError429 = false;
                 let timerId = "";
 
@@ -395,6 +396,7 @@
 </body>
 
 </html>
+
 
 
 
