@@ -87,6 +87,3 @@ Este é um projeto de código aberto para fins educacionais e de auxílio admini
 **Status:** Operacional 🟢
 **Lema:** Bellator et Sapien\!
 
-
-Isso vai deixar a página inicial do seu repositório com uma apresentação de "alto padrão". Brasil! 🇧🇷
-```
