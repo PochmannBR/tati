@@ -1,0 +1,13 @@
+name = "tati-proxy"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Deploy:  npx wrangler deploy
+# A URL final será algo como: https://tati-proxy.<seu-subdominio>.workers.dev
+#
+# Depois do deploy, configure a chave (uma única vez):
+#   npx wrangler secret put GEMINI_API_KEY
+# (cole a chave do Gemini quando pedir)
+#
+# Opcional — trocar o modelo padrão:
+#   painel do Worker -> Settings -> Variables -> GEMINI_MODEL = gemini-2.0-flash

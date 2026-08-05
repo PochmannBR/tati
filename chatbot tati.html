@@ -8,9 +8,8 @@
 	
 	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <script src="dados.js"></script>
-	<script src="persona.js"></script>
-	
+	<!-- dados.js (normas) e persona.js agora ficam no Worker tati-proxy, não no navegador -->
+
     <style>
         /* Estilo do Botão Flutuante */
         #chat-btn {
@@ -163,16 +162,12 @@
     </div>
 
 	<script>
-        // TÁTICA ANTI-ROBÔ: Quebramos a chave em duas partes
-        const part1 = "A"; // O início padrão (que o robô busca)
-        const part2 = "IzaSyC"; // Cole aqui o resto da chave (sem o AIzaSy)
-		const part3 = "Pd5uIEOglC"; // Cole aqui o resto da chave (sem o AIzaSy)
-		const part4 = "zvRTWtHZE1ylP"; // Cole aqui o resto da chave (sem o AIzaSy)
-		const part5 = "2MGzIlGCc"; // Cole aqui o resto da chave (sem o AIzaSy)
-		        
-        const API_KEY = part1 + part2 + part3 + part4 + part5; // O navegador junta as duas partes
-        
-		let chatHistory = [];
+        // A chave do Gemini NÃO fica mais aqui — está protegida como secret no
+        // Worker (tati-proxy). As normas e a persona também ficam no Worker.
+        // Após o deploy (npx wrangler deploy), cole aqui a URL do seu Worker:
+        const WORKER_URL = "https://tati-proxy.SEU-SUBDOMINIO.workers.dev";
+
+		let chatHistory = []; // itens no formato { role: "user"|"model", text }
 
 	    function toggleChat() {
             const chatWindow = document.getElementById('chat-window');
@@ -245,71 +240,55 @@
 			
             if (!messageText) return;
 
-            // Verificação de Segurança: O arquivo dados.js carregou?
-            if (typeof NORMAS_TEXTO === 'undefined') {
-                alert("Erro: O arquivo de normas (dados.js) não foi carregado.");
-                return;
-            }
-
             //Adiciona mensagem do usuário na tela
             messagesDiv.innerHTML += `<div class="message user">${messageText}</div>`;
             input.value = '';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             typingIndicator.style.display = 'block';
 
-			// --- MELHORIA 2: CONSCIÊNCIA TEMPORAL ---
-            // Pegamos a data de hoje formatada (ex: "15/12/2025")
-            const hoje = new Date().toLocaleDateString('pt-BR');
-            const contextoTemporal = `HOJE É DIA: ${hoje}. Use essa data para verificar prazos.`;
+			// Adiciona a pergunta ao histórico local (formato do Worker: {role, text})
+            // A data de hoje, a persona e as normas são injetadas pelo próprio Worker.
+            chatHistory.push({ role: "user", text: messageText });
 
-            // --- GESTÃO DE HISTÓRICO E CONTEXTO ---
-			// Adicionamos a data ao comando do sistema
-            const finalInstruction = `${BASE_INSTRUCTION}\n${contextoTemporal}\n\nCONTEXTO E NORMAS DA ESAO:\n${NORMAS_TEXTO}`;
-			
-			// B. Adiciona a pergunta atual ao histórico local
-            chatHistory.push({ role: "user", parts: [{ text: messageText }] });
-            
             try {
-                // Tenta usar a versão gemini-flash-latest
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+                // Chama o Worker (tati-proxy). O navegador manda só o histórico curto,
+                // sem chave e sem as normas — por isso não estoura mais a cota (429).
+                const response = await fetch(WORKER_URL.replace(/\/+$/, "") + "/gemini", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        // Envia o histórico completo
-                        contents: chatHistory,
-                        system_instruction: { parts: [{ text: finalInstruction }] } 
-                    })
+                    body: JSON.stringify({ messages: chatHistory })
                 });
-                
+
                 const data = await response.json();
-                
+
                 let isError429 = false;
                 let timerId = "";
 
-                if (data.error) {
-                    console.error("ERRO API:", data.error);
-                    
-                    // Se der erro, remove a última pergunta do histórico para não travar a conversa
+                if (!response.ok || data.erro) {
+                    console.error("ERRO API:", data.erro || data);
+
+                    // Remove a última pergunta do histórico para não travar a conversa
                     chatHistory.pop();
 
-                    if (data.error.code === 429) {
+                    if (response.status === 429 || data.codigo === 429) {
                         isError429 = true;
                         timerId = "timer-" + Date.now();
-                        
-                        botResponse = `⚠️ <b>Sobrecarga Tática!</b><br>
-                                       Muitas solicitações simultâneas.<br>
-                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">30</b> segundos.`;
-                    } else {
-                        botResponse = `Erro técnico (${data.error.code}): ${data.error.message}`;
-                    }
-                } else if (data.candidates && data.candidates[0].content) {
-                    botResponse = data.candidates[0].content.parts[0].text;
-                    
-                    // C. IMPORTANTE: Salva a resposta da IA no histórico
-                    chatHistory.push({ role: "model", parts: [{ text: botResponse }] });
+                        const espera = data.espera_segundos || 30;
 
-                    // Formatação
-                    botResponse = marked.parse(botResponse);
+                        botResponse = `⚠️ <b>Sobrecarga Tática!</b><br>
+                                       Muitas solicitações em sequência.<br>
+                                       Aguarde liberarmos o canal em: <b id="${timerId}" style="color:red; font-size:1.2em">${espera}</b> segundos.`;
+                    } else {
+                        botResponse = `Erro técnico: ${data.erro || ("HTTP " + response.status)}`;
+                    }
+                } else {
+                    const texto = data.text || "(sem resposta)";
+
+                    // Salva a resposta da IA no histórico (texto cru, sem HTML)
+                    chatHistory.push({ role: "model", text: texto });
+
+                    // Formatação para exibição
+                    botResponse = marked.parse(texto);
                 }
 
                 // Adiciona a resposta na tela
@@ -323,7 +302,7 @@
             } catch (error) {
                 console.error("ERRO JS:", error);
                 chatHistory.pop(); // Remove a pergunta falha
-                messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro de conexão. Verifique o console.</div>`;
+                messagesDiv.innerHTML += `<div class="message bot" style="color:red">Erro de conexão com o assistente. Verifique o console.</div>`;
             }
 
 			// --- Grava no Log ---
