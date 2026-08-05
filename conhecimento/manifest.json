@@ -1,0 +1,36 @@
+{
+  "documentos": [
+    {
+      "arquivo": "1-ripg-2022.md",
+      "titulo": "1. RIPG_2022"
+    },
+    {
+      "arquivo": "2-ipg-2026.md",
+      "titulo": "2. IPG_2026"
+    },
+    {
+      "arquivo": "3-pgpc-2026.md",
+      "titulo": "3. PGPC_2026"
+    },
+    {
+      "arquivo": "4-os-pmt.md",
+      "titulo": "4. OS PMT"
+    },
+    {
+      "arquivo": "5-pacpg-2026.md",
+      "titulo": "5. PACPG_2026"
+    },
+    {
+      "arquivo": "matad-2026.md",
+      "titulo": "MATAD 2026"
+    },
+    {
+      "arquivo": "7-manual-mpc.md",
+      "titulo": "7. Manual MPC"
+    },
+    {
+      "arquivo": "8-livro-abordagens-metodologicas-ciencias-militares-2026.md",
+      "titulo": "Livro - Abordagens Metodológicas em Ciências Militares (2026)"
+    }
+  ]
+}
